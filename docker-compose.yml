@@ -1,0 +1,34 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: fishgo-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./backend:/app
+    networks:
+      - fishgo-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fishgo-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./backend/music:/usr/share/nginx/html/music
+    depends_on:
+      - backend
+    networks:
+      - fishgo-network
+    restart: unless-stopped
+
+networks:
+  fishgo-network:
+    driver: bridge
