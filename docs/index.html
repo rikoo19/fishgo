@@ -215,9 +215,9 @@
         s.src = 'https://cdn.jsdelivr.net/gh/rikoo19/fishgo@main/frontend/game_new.js?v=20260604-0126';
         s.async = false;
         s.onload = function(){
-          // If DOMContentLoaded has already fired, manually start the game once.
-          if (document.readyState !== 'loading' && typeof window.PixelFishingGame === 'function') {
-            try { new window.PixelFishingGame(); } catch (e) { console.warn('Failed to auto-start game:', e); }
+          // If DOMContentLoaded has already fired, manually fire it once to run the game's listener.
+          if (document.readyState !== 'loading') {
+            try { document.dispatchEvent(new Event('DOMContentLoaded')); } catch (e) { console.warn('Failed to trigger DOMContentLoaded:', e); }
           }
         };
         document.head.appendChild(s);
