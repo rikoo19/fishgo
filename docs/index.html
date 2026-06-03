@@ -98,24 +98,124 @@
       </div>
     </div>
 
-    <!-- GitHub Pages API proxy and loader -->
+    <!-- GitHub Pages: offline API shim (implements /api/* in the browser using localStorage) -->
     <script>
       (function(){
-        if (location.hostname.endsWith('github.io')) {
-          const API_BASE = 'https://fishgo-seven.vercel.app';
-          const origFetch = window.fetch.bind(window);
-          window.fetch = function(input, init){
-            if (typeof input === 'string' && input.startsWith('/api/')) {
-              return origFetch(API_BASE + input, init);
-            }
-            if (input && typeof input.url === 'string' && input.url.startsWith('/api/')) {
-              return origFetch(API_BASE + input.url, init);
-            }
-            return origFetch(input, init);
-          };
+        if (!location.hostname.endsWith('github.io')) return;
+        const FISH_TYPES = {
+          small_fish: { name: 'Ikan Kecil', category: 'Common', rarity: 'common', sell_price: 5, value: 5, hunger_restore: 10, cooking_time: 3 },
+          medium_fish: { name: 'Ikan Sedang', category: 'Uncommon', rarity: 'uncommon', sell_price: 15, value: 15, hunger_restore: 25, cooking_time: 5 },
+          large_fish: { name: 'Ikan Besar', category: 'Rare', rarity: 'rare', sell_price: 50, value: 50, hunger_restore: 50, cooking_time: 8 },
+          golden_fish: { name: 'Ikan Emas', category: 'Legendary', rarity: 'legendary', sell_price: 200, value: 200, hunger_restore: 100, cooking_time: 15 }
+        };
+        const nowSec = () => Math.floor(Date.now()/1000);
+        function loadPlayer(id){
+          try { const raw = localStorage.getItem('player_'+id); if (raw) return JSON.parse(raw); } catch(e){}
+          const p = { id, coins:100, health:100, hunger:100, inventory:{}, cooked_food:{}, owned_rods:['basic'], auto_cook_enabled:false, last_hunger_update: nowSec() };
+          localStorage.setItem('player_'+id, JSON.stringify(p));
+          return p;
         }
+        function savePlayer(p){ localStorage.setItem('player_'+p.id, JSON.stringify(p)); }
+        function updateHunger(p){
+          const diff = nowSec() - (p.last_hunger_update || nowSec());
+          const dec = Math.floor(diff/60);
+          if (dec>0){
+            p.hunger = Math.max(0, (p.hunger||100)-dec);
+            p.last_hunger_update = nowSec();
+            if (p.hunger===0){ p.health = Math.max(0, (p.health||100)-dec); }
+          }
+        }
+        function chooseFish(){
+          const pool = [ ['small_fish', 1/10], ['medium_fish', 1/50], ['large_fish', 1/150], ['golden_fish', 1/1000] ];
+          const total = pool.reduce((a,[,w])=>a+w,0) + 0.20; // + no-fish weight
+          let pick = Math.random()*total, acc=0;
+          for (const [k,w] of pool){ acc+=w; if (pick<=acc) return k; }
+          return null; // no fish
+        }
+        function mockResponse(data, status=200){
+          return Promise.resolve({ ok: status>=200 && status<300, status, json: ()=>Promise.resolve(data), text: ()=>Promise.resolve(typeof data==='string'? data : JSON.stringify(data)) });
+        }
+        const origFetch = window.fetch ? window.fetch.bind(window) : null;
+        window.fetch = function(input, init){
+          try {
+            const url = typeof input==='string' ? input : (input && input.url) || '';
+            const method = ((init && init.method) || 'GET').toUpperCase();
+            if (url.startsWith('/api/')){
+              const path = url.replace(/^\/?api\//,'');
+              const parts = path.split('/');
+              if (parts[0]==='fish-types' && method==='GET'){
+                return mockResponse(FISH_TYPES);
+              }
+              if (parts[0]==='player' && parts.length>=2){
+                const playerId = parts[1];
+                let p = loadPlayer(playerId);
+                updateHunger(p);
+                if (parts.length===2 && method==='GET'){
+                  savePlayer(p); return mockResponse(p);
+                }
+                const body = (()=>{ try{return JSON.parse((init && init.body)||'{}')}catch(e){return{}} })();
+                if (parts[2]==='fish' && method==='POST'){
+                  const key = chooseFish();
+                  if (!key){ savePlayer(p); return mockResponse({success:false, message:'Tidak ada ikan yang terpancing!'}); }
+                  const fish = FISH_TYPES[key];
+                  p.inventory[key]=(p.inventory[key]||0)+1;
+                  if (p.auto_cook_enabled){
+                    p.cooked_food[key]=(p.cooked_food[key]||0)+1;
+                    p.inventory[key]-=1; if(p.inventory[key]<=0) delete p.inventory[key];
+                  }
+                  savePlayer(p);
+                  const fish_data = { ...fish, rarity: fish.rarity, category: fish.category };
+                  return mockResponse({ success:true, fish: fish_data, fish_id:key, rarity_category: fish.category, message:`Berhasil menangkap ${fish.name} (${fish.category})!` });
+                }
+                if (parts[2]==='sell-fish' && method==='POST'){
+                  const fid = body.fish_id; const fish = FISH_TYPES[fid];
+                  if (!fid || !p.inventory[fid]) return mockResponse({detail:'Ikan tidak ada di inventory!'},400);
+                  const price = (fish && (fish.sell_price||fish.value))||0;
+                  p.coins += price; p.inventory[fid]-=1; if(p.inventory[fid]<=0) delete p.inventory[fid]; savePlayer(p);
+                  return mockResponse({message:`Berhasil menjual ${fish?fish.name:fid} seharga ${price} koin!`, coins:p.coins, inventory:p.inventory});
+                }
+                if (parts[2]==='buy-rod' && method==='POST'){
+                  const price = body.price||0; const rodId = body.rod_id;
+                  p.owned_rods = Array.isArray(p.owned_rods)? p.owned_rods : ['basic'];
+                  if (p.owned_rods.includes(rodId)) return mockResponse({detail:'Rod sudah dimiliki!'},400);
+                  if (p.coins < price) return mockResponse({detail:`Koin tidak cukup! Butuh ${price} coins`},400);
+                  p.coins -= price; p.owned_rods.push(rodId); savePlayer(p);
+                  return mockResponse({message:'Berhasil membeli rod!', coins:p.coins, owned_rods:p.owned_rods});
+                }
+                if (parts[2]==='cook-fish' && method==='POST'){
+                  const fid = body.fish_id; if(!fid || !p.inventory[fid]) return mockResponse({detail:'Ikan tidak ada di inventory!'},400);
+                  p.inventory[fid]-=1; if(p.inventory[fid]<=0) delete p.inventory[fid]; p.cooked_food[fid]=(p.cooked_food[fid]||0)+1; savePlayer(p);
+                  const fish = FISH_TYPES[fid]; return mockResponse({message:`Berhasil memasak ${fish?fish.name:fid}!`, cooked_food:p.cooked_food});
+                }
+                if (parts[2]==='cook-dish' && method==='POST'){
+                  const {fish_id, price=0, hunger_restore=0} = body;
+                  if (p.coins < price) return mockResponse({detail:`Koin tidak cukup! Butuh ${price} coins`},400);
+                  if (!p.inventory[fish_id] || p.inventory[fish_id] < 1) return mockResponse({detail:'Ikan tidak ada di inventory!'},400);
+                  p.coins -= price; p.inventory[fish_id]-=1; if(p.inventory[fish_id]<=0) delete p.inventory[fish_id]; p.hunger = Math.min(100, (p.hunger||100) + hunger_restore); savePlayer(p);
+                  return mockResponse({message:`Berhasil memasak! Hunger +${hunger_restore}`, coins:p.coins, hunger:p.hunger, inventory:p.inventory});
+                }
+                if (parts[2]==='toggle-auto-cook' && method==='POST'){
+                  p.auto_cook_enabled = !p.auto_cook_enabled; savePlayer(p);
+                  return mockResponse({message:`Auto-cook ${p.auto_cook_enabled? 'diaktifkan':'dinonaktifkan'}!`, auto_cook_enabled:p.auto_cook_enabled});
+                }
+                if (parts[2]==='eat' && method==='POST' && parts.length>=4){
+                  const t = parts[3]; if (!p.cooked_food[t] || p.cooked_food[t] < 1) return mockResponse({detail:'Makanan tidak cukup!'},400);
+                  const fish = FISH_TYPES[t]; const restore = fish? fish.hunger_restore : 10; p.cooked_food[t]-=1; if(p.cooked_food[t]<=0) delete p.cooked_food[t]; p.hunger = Math.min(100, (p.hunger||100) + restore); savePlayer(p);
+                  return mockResponse({message:`Berhasil memakan ${fish?fish.name:t}! Hunger +${restore}`, hunger:p.hunger});
+                }
+              }
+            }
+          } catch (e) { console.warn('Mock API error', e); }
+          return (origFetch ? origFetch(input, init) : Promise.reject(new Error('fetch not available')));
+        };
+      })();
+    </script>
+
+    <!-- Load the full game script from jsDelivr CDN for proper MIME type on Pages -->
+    <script>
+      (function(){
         var s = document.createElement('script');
-        s.src = 'https://fishgo-seven.vercel.app/frontbundle/game_new.js?v=20260604-0126';
+        s.src = 'https://cdn.jsdelivr.net/gh/rikoo19/fishgo@main/frontend/game_new.js?v=20260604-0126';
         s.async = false;
         document.head.appendChild(s);
       })();
