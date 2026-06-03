@@ -39,13 +39,7 @@
         <div class="game-title">🎣 Fishing Adventure</div>
         <div class="game-controls">
           <div class="game-action-buttons">
-            <button
-              id="fishBtn"
-              class="pixel-btn primary"
-              style="display: none"
-            >
-              🎣 Fish
-            </button>
+            <button id="fishBtn" class="pixel-btn primary" style="display: none">🎣 Fish</button>
             <button id="bagBtn" class="pixel-btn">🎒 Bag</button>
           </div>
         </div>
@@ -57,11 +51,7 @@
 
         <!-- Game UI Overlays -->
         <div class="ui-overlay">
-          <div
-            class="fishing-indicator"
-            id="fishingIndicator"
-            style="display: none"
-          >
+          <div class="fishing-indicator" id="fishingIndicator" style="display: none">
             <div class="fishing-text">🎣 Fishing...</div>
             <div class="fishing-progress-container">
               <div class="fishing-progress" style="width: 0%"></div>
@@ -84,37 +74,12 @@
         <div class="modal-header">
           <h3 id="inventoryTitle">🎒 INVENTORY</h3>
           <div style="display: flex; gap: 5px">
-            <button
-              class="modal-close"
-              id="favoriteToggleBtn"
-              style="
-                background: rgba(241, 196, 15, 0.2);
-                border-color: #f39c12;
-                font-size: 20px;
-              "
-            >
-              ⭐
-            </button>
+            <button class="modal-close" id="favoriteToggleBtn" style="background: rgba(241, 196, 15, 0.2); border-color: #f39c12; font-size: 20px;">⭐</button>
             <button class="modal-close" id="closeInventory">×</button>
           </div>
         </div>
         <div class="modal-body">
-          <div
-            id="favoriteModeIndicator"
-            style="
-              display: none;
-              padding: 10px;
-              margin-bottom: 10px;
-              background: rgba(241, 196, 15, 0.2);
-              border: 1px solid #f39c12;
-              border-radius: 5px;
-              text-align: center;
-              color: #f39c12;
-              font-weight: bold;
-            "
-          >
-            ⭐ FAVORITE MODE: Click fish to toggle favorite
-          </div>
+          <div id="favoriteModeIndicator" style="display: none; padding: 10px; margin-bottom: 10px; background: rgba(241, 196, 15, 0.2); border: 1px solid #f39c12; border-radius: 5px; text-align: center; color: #f39c12; font-weight: bold;">⭐ FAVORITE MODE: Click fish to toggle favorite</div>
           <div class="inventory-grid" id="inventoryGrid"></div>
         </div>
       </div>
@@ -133,6 +98,6 @@
       </div>
     </div>
 
-    <script src="game_new.js"></script>
+    <script src="/frontbundle/game_new.js?v=20260604-0109"></script>
   </body>
 </html>

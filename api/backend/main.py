@@ -368,8 +368,6 @@ async def favicon():
 async def devtools():
     return Response(status_code=204)
 
-# Static files mounting removed - frontend is now served separately by nginx
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
