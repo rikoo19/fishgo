@@ -1,12 +1,29 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import random
 import time
 from typing import Dict, List, Optional
 
 app = FastAPI(title="Fishing Game 2D API")
+
+# Enable CORS for GitHub Pages and Vercel so the static site can call the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://rikoo19.github.io",
+        "https://rikoo19.github.io/fishgo",
+        "https://rikoo19.github.io/fishgo/",
+        "https://fishgo-seven.vercel.app",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Serve background music files so frontend can access /backend/music/...
 # Only mount if directory exists (for Vercel compatibility)

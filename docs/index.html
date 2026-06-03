@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fishing Game 2D - GitHub Pages</title>
+    <link rel="stylesheet" href="./style_new.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50%25' x='50%25' dominant-baseline='middle' text-anchor='middle' font-size='48'%3E%F0%9F%8E%A3%3C/text%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <!-- Background Music -->
+    <audio id="bgMusic" autoplay loop muted style="display: none">
+      <source src="./assets/backsoundOne.mp3" type="audio/mpeg" />
+    </audio>
+
+    <div class="game-wrapper">
+      <!-- Top UI Bar -->
+      <div class="top-ui">
+        <div class="player-info">
+          <div class="stat-group">
+            <span class="stat-icon">💰</span>
+            <span id="coins" class="stat-value">100</span>
+          </div>
+          <div class="stat-group">
+            <span class="stat-icon">❤️</span>
+            <div class="mini-bar">
+              <div class="mini-bar-fill health-bar" id="health-bar"></div>
+            </div>
+            <span id="health-text" class="stat-text">100</span>
+          </div>
+          <div class="stat-group">
+            <span class="stat-icon">🍽️</span>
+            <div class="mini-bar">
+              <div class="mini-bar-fill hunger-bar" id="hunger-bar"></div>
+            </div>
+            <span id="hunger-text" class="stat-text">100</span>
+          </div>
+        </div>
+        <div class="game-title">🎣 Fishing Adventure</div>
+        <div class="game-controls">
+          <div class="game-action-buttons">
+            <button id="fishBtn" class="pixel-btn primary" style="display: none">🎣 Fish</button>
+            <button id="bagBtn" class="pixel-btn">🎒 Bag</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Game Area -->
+      <div class="game-viewport">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Game UI Overlays -->
+        <div class="ui-overlay">
+          <div class="fishing-indicator" id="fishingIndicator" style="display: none">
+            <div class="fishing-text">🎣 Fishing...</div>
+            <div class="fishing-progress-container">
+              <div class="fishing-progress" style="width: 0%"></div>
+            </div>
+            <div class="fishing-instructions" id="fishingInstructions"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hotbar (Rendered in Canvas) -->
+
+      <!-- Message System -->
+      <div id="messageArea" class="message-system"></div>
+    </div>
+
+    <!-- Modals (Outside game-wrapper for proper z-index) -->
+    <!-- Inventory Modal -->
+    <div id="inventoryModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="inventoryTitle">🎒 INVENTORY</h3>
+          <div style="display: flex; gap: 5px">
+            <button class="modal-close" id="favoriteToggleBtn" style="background: rgba(241, 196, 15, 0.2); border-color: #f39c12; font-size: 20px;">⭐</button>
+            <button class="modal-close" id="closeInventory">×</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div id="favoriteModeIndicator" style="display: none; padding: 10px; margin-bottom: 10px; background: rgba(241, 196, 15, 0.2); border: 1px solid #f39c12; border-radius: 5px; text-align: center; color: #f39c12; font-weight: bold;">⭐ FAVORITE MODE: Click fish to toggle favorite</div>
+          <div class="inventory-grid" id="inventoryGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NPC Interaction Modal -->
+    <div id="npcModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="npcTitle">🏪 NPC</h3>
+          <button class="modal-close" id="closeNpc">×</button>
+        </div>
+        <div class="modal-body">
+          <div id="npcContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GitHub Pages API proxy and loader -->
+    <script>
+      (function(){
+        if (location.hostname.endsWith('github.io')) {
+          const API_BASE = 'https://fishgo-seven.vercel.app';
+          const origFetch = window.fetch.bind(window);
+          window.fetch = function(input, init){
+            if (typeof input === 'string' && input.startsWith('/api/')) {
+              return origFetch(API_BASE + input, init);
+            }
+            if (input && typeof input.url === 'string' && input.url.startsWith('/api/')) {
+              return origFetch(API_BASE + input.url, init);
+            }
+            return origFetch(input, init);
+          };
+        }
+        var s = document.createElement('script');
+        s.src = 'https://fishgo-seven.vercel.app/frontbundle/game_new.js?v=20260604-0126';
+        s.async = false;
+        document.head.appendChild(s);
+      })();
+    </script>
+  </body>
+</html>
